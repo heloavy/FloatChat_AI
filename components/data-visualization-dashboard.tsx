@@ -21,7 +21,7 @@ import {
   ScatterChart,
   Scatter,
 } from "recharts"
-import { MapPin, Thermometer, Droplets, Gauge, TrendingUp, Download, RefreshCw } from "lucide-react"
+import { MapPin, Thermometer, Droplets, Gauge, TrendingUp, Download, RefreshCw, ZoomIn, ZoomOut } from "lucide-react"
 
 // Mock data for ARGO profiles
 const temperatureData = [
@@ -64,6 +64,217 @@ const anomalyData = [
   { time: "16:00", temperature: 1.8, salinity: 1.2 },
   { time: "20:00", temperature: 0.9, salinity: 0.4 },
 ]
+
+// Interactive Earth Map Component
+const EarthMap = ({ floats, selectedOcean }) => {
+  const [zoom, setZoom] = useState(1)
+  const [panX, setPanX] = useState(0)
+  const [panY, setPanY] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+
+  const filteredFloats = floats.filter((float) => selectedOcean === "all" || float.ocean === selectedOcean)
+
+  const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.5, 4))
+  const handleZoomOut = () => setZoom(prev => Math.max(prev / 1.5, 0.5))
+
+  const handleMouseDown = (e) => {
+    setIsDragging(true)
+    setDragStart({ x: e.clientX - panX, y: e.clientY - panY })
+  }
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return
+    setPanX(e.clientX - dragStart.x)
+    setPanY(e.clientY - dragStart.y)
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  // Convert lat/lon to screen coordinates
+  const getScreenPosition = (lat, lon) => {
+    const x = ((lon + 180) / 360) * 400
+    const y = ((90 - lat) / 180) * 200
+    return { x, y }
+  }
+
+  // Generate world map as solid shapes
+  const generateWorldMap = () => {
+    return (
+      <g>
+        {/* North America */}
+        <path
+          d="M 40 40 L 45 35 L 50 30 L 60 25 L 80 30 L 100 35 L 120 40 L 140 45 L 150 50 L 155 60 L 150 70 L 140 75 L 120 80 L 100 85 L 80 80 L 60 75 L 50 70 L 45 60 L 40 50 Z"
+          fill="#94a3b8"
+          opacity="0.8"
+        />
+        
+        {/* South America */}
+        <path
+          d="M 120 110 L 130 105 L 140 110 L 145 120 L 150 140 L 145 160 L 140 170 L 135 175 L 125 180 L 120 175 L 115 165 L 110 150 L 115 130 L 120 110 Z"
+          fill="#94a3b8"
+          opacity="0.8"
+        />
+        
+        {/* Europe */}
+        <path
+          d="M 190 45 L 200 40 L 220 42 L 240 45 L 245 55 L 240 65 L 220 70 L 200 68 L 190 60 L 185 50 Z"
+          fill="#94a3b8"
+          opacity="0.8"
+        />
+        
+        {/* Africa */}
+        <path
+          d="M 180 80 L 200 75 L 220 80 L 240 85 L 250 100 L 255 120 L 250 140 L 240 155 L 220 160 L 200 155 L 180 150 L 170 130 L 175 110 L 180 90 Z"
+          fill="#94a3b8"
+          opacity="0.8"
+        />
+        
+        {/* Asia */}
+        <path
+          d="M 245 30 L 280 25 L 320 30 L 360 35 L 380 40 L 390 50 L 385 70 L 370 80 L 350 85 L 320 80 L 280 75 L 250 70 L 245 50 Z"
+          fill="#94a3b8"
+          opacity="0.8"
+        />
+        
+        {/* Australia */}
+        <path
+          d="M 320 140 L 340 135 L 360 140 L 370 150 L 365 160 L 350 165 L 330 160 L 320 150 Z"
+          fill="#94a3b8"
+          opacity="0.8"
+        />
+        
+        {/* Greenland */}
+        <path
+          d="M 160 20 L 170 15 L 180 20 L 175 35 L 165 40 L 155 35 L 160 25 Z"
+          fill="#94a3b8"
+          opacity="0.8"
+        />
+      </g>
+    )
+  }
+
+  return (
+    <div className="relative w-full h-[350px] bg-gradient-to-b from-blue-100 to-blue-50 dark:from-blue-900 dark:to-blue-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+      {/* Zoom Controls */}
+      <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
+        <Button size="sm" variant="outline" onClick={handleZoomIn} className="w-8 h-8 p-0 bg-white/80 hover:bg-white">
+          <ZoomIn className="h-3 w-3" />
+        </Button>
+        <Button size="sm" variant="outline" onClick={handleZoomOut} className="w-8 h-8 p-0 bg-white/80 hover:bg-white">
+          <ZoomOut className="h-3 w-3" />
+        </Button>
+      </div>
+
+      {/* Map Container */}
+      <div
+        className="w-full h-full cursor-move"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 400 200"
+          className="w-full h-full"
+          style={{
+            transform: `scale(${zoom}) translate(${panX / zoom}px, ${panY / zoom}px)`,
+            transformOrigin: 'center center'
+          }}
+        >
+          {/* World map continents */}
+          {generateWorldMap()}
+          
+          {/* Ocean grid lines */}
+          <defs>
+            <pattern id="oceanGrid" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+              <circle cx="10" cy="10" r="0.5" fill="#0ea5e9" opacity="0.2" />
+            </pattern>
+          </defs>
+          <rect width="400" height="200" fill="url(#oceanGrid)" />
+          
+          {/* Equator line */}
+          <line x1="0" y1="100" x2="400" y2="100" stroke="#64748b" strokeWidth="0.5" strokeDasharray="2,2" opacity="0.5" />
+          
+          {/* Prime meridian */}
+          <line x1="200" y1="0" x2="200" y2="200" stroke="#64748b" strokeWidth="0.5" strokeDasharray="2,2" opacity="0.5" />
+          
+          {/* ARGO Float markers */}
+          {filteredFloats.map((float, index) => {
+            const pos = getScreenPosition(float.lat, float.lon)
+            return (
+              <g key={index}>
+                {/* Float marker */}
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r="4"
+                  fill={float.status === "active" ? "#10b981" : "#f59e0b"}
+                  stroke="white"
+                  strokeWidth="1.5"
+                  className="drop-shadow-sm"
+                />
+                {/* Pulse animation for active floats */}
+                {float.status === "active" && (
+                  <circle
+                    cx={pos.x}
+                    cy={pos.y}
+                    r="6"
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="1"
+                    opacity="0.6"
+                  >
+                    <animate
+                      attributeName="r"
+                      values="4;8;4"
+                      dur="2s"
+                      repeatCount="indefinite"
+                    />
+                    <animate
+                      attributeName="opacity"
+                      values="0.6;0;0.6"
+                      dur="2s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                )}
+                {/* Temperature label */}
+                <text
+                  x={pos.x}
+                  y={pos.y - 8}
+                  textAnchor="middle"
+                  className="text-xs font-semibold fill-gray-700 dark:fill-gray-300"
+                  fontSize="3"
+                >
+                  {float.temp}°C
+                </text>
+              </g>
+            )
+          })}
+        </svg>
+      </div>
+
+      {/* Legend */}
+      <div className="absolute bottom-2 left-2 bg-white/90 dark:bg-gray-800/90 p-2 rounded border text-xs">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            <span>Active</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+            <span>Inactive</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function DataVisualizationDashboard() {
   const [selectedOcean, setSelectedOcean] = useState("all")
@@ -286,20 +497,7 @@ export function DataVisualizationDashboard() {
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">ARGO Float Distribution</h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">Current locations and status of active ARGO floats</p>
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <ResponsiveContainer width="100%" height={350}>
-                      <ScatterChart
-                        data={floatLocations.filter((float) => selectedOcean === "all" || float.ocean === selectedOcean)}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis dataKey="lat" name="Latitude" stroke="#6b7280" fontSize={12} />
-                        <YAxis dataKey="lon" name="Longitude" stroke="#6b7280" fontSize={12} />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Scatter dataKey="temp" fill="#3b82f6" name="Temperature (°C)" />
-                      </ScatterChart>
-                    </ResponsiveContainer>
-                  </div>
+                  <EarthMap floats={floatLocations} selectedOcean={selectedOcean} />
                   <div className="space-y-3">
                     <h4 className="font-semibold text-gray-900 dark:text-gray-100">Float Status Summary</h4>
                     <div className="max-h-80 overflow-y-auto space-y-2 pr-2">

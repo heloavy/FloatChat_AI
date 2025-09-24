@@ -29,7 +29,7 @@ const courses = [
     students: 1247,
     rating: 4.8,
     topics: ["Ocean Basics", "Water Properties", "Marine Life", "Data Collection"],
-    videoUrl: "https://www.youtube.com/watch?v=X_XSBWZGNzA", // Introduction to Oceanography
+    videoUrl: "https://www.youtube.com/watch?v=Cq4G2ciXjZI", // Introduction to Oceanography
   },
   {
     id: 2,
